@@ -1,8 +1,8 @@
 from contextlib import nullcontext
 import json
+from pprint import pprint
 import socket
-import random 
-import pre_made_tests
+import random
 from schema import BuildingType, InputPayload, RandomEvent, Forecast, BuildingLoad, ReturnPayload
 import socketconfig
 
@@ -66,15 +66,33 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
 
     (clientsocket, address) = server.accept()
     total = 0
+    payloads = []
     with clientsocket:
         print(f"Connected by {address}")
-        for input_payload in pre_made_tests.tests:
+        for hour in range(24):
+            input_payload = generate_test_data_for_hour()
+
+            lecture_hall_load = 0
+            non_lecture_hall_load = 0
+
+            for load in input_payload["loads"]:
+                if load["type"] == "lecture_hall":
+                    lecture_hall_load += load["load"]
+                else:
+                    non_lecture_hall_load += load["load"]
+
+            payloads.append(input_payload)
             grid_cost = input_payload["grid_cost"]
             clientsocket.sendall(json.dumps(input_payload).encode("utf-8"))
 
+
             client_payload: ReturnPayload = json.loads(clientsocket.recv(1024))
 
-            total += client_payload["generator"]
-            total += grid_cost * sum(allocation["grid"] for allocation in client_payload["buildings"])
+            hour_total = client_payload["generator"] + grid_cost * sum(allocation["grid"] for allocation in client_payload["buildings"])
+            total += hour_total
+            print(f"HOUR {hour} - Lecture hall load: {lecture_hall_load}, Non-lecture hall load: {non_lecture_hall_load}, Event: {input_payload['random_event']}, Grid Cost: {grid_cost}, Battery Charge: {client_payload['generator']}, Total Cost for hour: {hour_total}")
+            pprint(client_payload)
 
-    print(f"{total:.2f}")
+    with open("temp.txt", "+w") as file:
+        json.dump(payloads, file)
+    print(f"Final cost: {total:.2f}")
