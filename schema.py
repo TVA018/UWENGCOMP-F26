@@ -5,7 +5,7 @@ type Forecast = Literal["cloudy", "not cloudy"]
 type BuildingType = Literal["library", "laboratory", "lecture_hall", "student_centre", "student_residence"]
 
 class BuildingLoad(TypedDict):
-    buildingType: BuildingType
+    type: BuildingType
     load: int
 
 class ElectricityAllocation(TypedDict):
@@ -16,8 +16,8 @@ class ElectricityAllocation(TypedDict):
 class InputPayload(TypedDict):
     random_event: RandomEvent
     forecast: Forecast
-    buildingLoads: list[BuildingLoad]
-    grid_price: float
+    loads: list[BuildingLoad]
+    grid_cost: float
 
 class ReturnPayload(TypedDict):
     buildings: list[ElectricityAllocation]
