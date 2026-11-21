@@ -1,4 +1,8 @@
+import json
+import socket
+
 import schema
+import socketconfig
 SOLAR_CAPACITY = 200
 BATTERY_CAPACITY = 100
 GENERATOR_PRICE = 1.0
@@ -19,9 +23,9 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 	GENERATOR_WORK = True
 
 	randomEvent = input_payload.get("random_event")
-	buildingLoads = input_payload.get("buildingLoads")
+	buildingLoads = input_payload.get("loads")
 	forecast = input_payload.get("forecast")
-	gridPrice = input_payload.get("grid_price")
+	gridPrice = input_payload.get("grid_cost")
  
  
 	returnPayload : schema.ReturnPayload = {
@@ -102,3 +106,20 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 		returnPayload.update({"generator" : current_battery - batteryUnitsLeft})
  
 	return returnPayload
+
+def run_client():
+	battery = 0
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
+		client.connect((socketconfig.HOST, socketconfig.PORT))
+
+		for hour in range(24):
+			# RECEIVING PAYLOAD FROM SOCKET
+			payload: schema.InputPayload = json.loads(client.recv(1024))
+			return_payload = process(payload, battery)
+			battery -= sum(allocation["battery"] for allocation in return_payload["buildings"])
+			battery += return_payload["generator"]
+
+			client.sendall(json.dumps(return_payload).encode("utf-8"))
+
+if __name__ == "__main__":
+	run_client()
