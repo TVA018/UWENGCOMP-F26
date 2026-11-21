@@ -2,7 +2,9 @@ from contextlib import nullcontext
 import json
 import socket
 import random 
-from schema import BuildingType, InputPayload, RandomEvent, Forecast, BuildingLoad
+import pre_made_tests
+from schema import BuildingType, InputPayload, RandomEvent, Forecast, BuildingLoad, ReturnPayload
+import socketconfig
 
 def generate_test_data_for_hour() -> InputPayload:
     # Generate a random event
@@ -42,7 +44,7 @@ def generate_test_data_for_hour() -> InputPayload:
             case 5: 
                 myRandomBuilding = "student_residence"
         myBuildingLoadList.append({
-            "buildingType": myRandomBuilding,
+            "type": myRandomBuilding,
             "load": random.randint(5, 70)
         })
 
@@ -52,29 +54,27 @@ def generate_test_data_for_hour() -> InputPayload:
     myInputPayload: InputPayload = {
         "random_event": myRandomEvent,
         "forecast": myRandomForecast,
-        "buildingLoads": myBuildingLoadList,
-        "grid_price": myGridPrice
+        "loads": myBuildingLoadList,
+        "grid_cost": myGridPrice
     }
 
     return myInputPayload;
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-    server.bind(("127.0.0.1", 8800))
+    server.bind((socketconfig.HOST, socketconfig.PORT))
     server.listen()
 
-    while True:
-        (clientsocket, address) = server.accept()
-        with clientsocket:
-            print(f"Connected by {address}")
-            for i in range(24): 
-                hour_info: InputPayload = generate_test_data_for_hour() # Generate test data to store in this dictionary
-                clientsocket.sendall(json.dumps(hour_info).encode("utf-8"))
+    (clientsocket, address) = server.accept()
+    total = 0
+    with clientsocket:
+        print(f"Connected by {address}")
+        for input_payload in pre_made_tests.tests:
+            grid_cost = input_payload["grid_cost"]
+            clientsocket.sendall(json.dumps(input_payload).encode("utf-8"))
 
-                client_payload_str = ""
-                incoming_data = clientsocket.recv(1024)
+            client_payload: ReturnPayload = json.loads(clientsocket.recv(1024))
 
-                while incoming_data:
-                    client_payload_str += incoming_data.decode("utf-8")
-                    incoming_data = clientsocket.recv(1024)
+            total += client_payload["generator"]
+            total += grid_cost * sum(allocation["grid"] for allocation in client_payload["buildings"])
 
-                client_payload_dict = json.loads(client_payload_str)
+    print(f"{total:.2f}")
