@@ -44,6 +44,17 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 		"generator": 0
 	} 
 
+	# UPDATE STATUS
+	match randomEvent:
+		case "battery_failure":
+			BATTERY_WORK = False
+		case "cloudy_weather":
+			SOLAR_WORK = False
+		case "generator_failure":
+			GENERATOR_WORK = False
+		case "grid_failure":
+			GRID_WORK = False
+
 	# CALCULATE TOTAL LOAD
 	for load in buildingLoads:
 		totalLoad += load.get("load")
@@ -77,20 +88,22 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 		load = tracker[index].get("load")
 		if gridPrice > GENERATOR_PRICE and batteryUnitsLeft > 0:
 			if load != 0:
-				if batteryUnitsLeft > load:
-					tracker[index].update({"load" : 0})
-					returnPayload.get("buildings")[index].update({"battery" : load})
-					batteryUnitsLeft -= load
-				else:
-					tracker[index].update({"load" : load - batteryUnitsLeft})
-					returnPayload.get("buildings")[index].update({"battery" : batteryUnitsLeft})
-					batteryUnitsLeft = 0
+				if BATTERY_WORK:
+					if batteryUnitsLeft > load:
+						tracker[index].update({"load" : 0})
+						returnPayload.get("buildings")[index].update({"battery" : load})
+						batteryUnitsLeft -= load
+					else:
+						tracker[index].update({"load" : load - batteryUnitsLeft})
+						returnPayload.get("buildings")[index].update({"battery" : batteryUnitsLeft})
+						batteryUnitsLeft = 0
 		else:
-			if load != 0:
-				returnPayload.get("buildings")[index].update({"grid" : load})
-				tracker[index].update({"load" : 0})
+			if GRID_WORK:
+				if load != 0:
+					returnPayload.get("buildings")[index].update({"grid" : load})
+					tracker[index].update({"load" : 0})
 
-
-	returnPayload.update({"generator" : current_battery - batteryUnitsLeft})
+	if GENERATOR_WORK:
+		returnPayload.update({"generator" : current_battery - batteryUnitsLeft})
  
 	return returnPayload
