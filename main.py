@@ -103,7 +103,7 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 					tracker[index].update({"load" : 0})
 
 	if GENERATOR_WORK:
-		returnPayload.update({"generator" : current_battery - batteryUnitsLeft})
+		returnPayload.update({"generator" : BATTERY_CAPACITY - batteryUnitsLeft})
  
 	return returnPayload
 
