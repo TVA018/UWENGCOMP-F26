@@ -5,27 +5,30 @@ import random
 from schema import BuildingType, InputPayload, RandomEvent, Forecast, BuildingLoad
 
 def generate_test_data_for_hour() -> InputPayload:
+    # Generate a random event
     match random.randint(1, 5):
         case 1:
-            randomEvent: RandomEvent = "none"   
+            myRandomEvent: RandomEvent = "none"   
         case 2:
-            randomEvent: RandomEvent = "battery_failure"   
+            myRandomEvent: RandomEvent = "battery_failure"   
         case 3:
-            randomEvent: RandomEvent = "cloudy_weather" 
+            myRandomEvent: RandomEvent = "cloudy_weather" 
         case 4:
-            randomEvent: RandomEvent = "generator_failure"   
+            myRandomEvent: RandomEvent = "generator_failure"   
         case 5: 
-            randomEvent: RandomEvent = "grid_failure" 
+            myRandomEvent: RandomEvent = "grid_failure" 
 
+    # Generate a forecast (cloudy or not cloudy)
     match random.randint(1, 2):
         case 1:
-            randomForecast: Forecast = "cloudy"
+            myRandomForecast: Forecast = "cloudy"
         case 2: 
-            randomForecast: Forecast = "not cloudy"   
+            myRandomForecast: Forecast = "not cloudy"   
 
     myRandomBuilding: BuildingType
     myBuildingLoadList: list[BuildingLoad] = []
 
+    # Generate a building payload
     for i in range(random.randint(7, 10)):
         match random.randint(1, 5):
             case 1:
@@ -43,13 +46,14 @@ def generate_test_data_for_hour() -> InputPayload:
             "load": random.randint(5, 70)
         })
 
-    gridCost = round(random.uniform(0.50, 2.00), 2)
+    # Generate a random price for the electrical grid
+    myGridPrice = round(random.uniform(0.50, 2.00), 2)
 
     myInputPayload: InputPayload = {
-        "random_event": randomEvent,
-        "forecast": randomForecast,
+        "random_event": myRandomEvent,
+        "forecast": myRandomForecast,
         "buildingLoads": myBuildingLoadList,
-        "grid_price": gridCost
+        "grid_price": myGridPrice
     }
 
     return myInputPayload;
