@@ -22,27 +22,22 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 	forecast = input_payload.get("forecast")
 	gridPrice = input_payload.get("grid_price")
  
-	elecAlloc : schema.ElectricityAllocation = {
-		"battery": 0,
-		"grid": 0,
-		"solar": 0
-	}	
  
 	returnPayload : schema.ReturnPayload = {
-		"buildings": [elecAlloc] * len(buildingLoads),
+		"buildings": [],
 		"generator": 0
 	} 
 
-	elecAlloc : schema.ElectricityAllocation = {
-					"battery": 0,
-					"grid": 0,
-					"solar": 0
-				}
-	
-	returnPayload : schema.ReturnPayload = {
-		"buildings": [elecAlloc] * len(buildingLoads), 
-		"generator": 0
-	} 
+	for x in range(len(buildingLoads)):
+		elecAlloc : schema.ElectricityAllocation = {
+						"battery": 0,
+						"grid": 0,
+						"solar": 0
+					}
+
+		returnPayload.get("buildings").append(elecAlloc)
+
+
 
 	# UPDATE STATUS
 	match randomEvent:
@@ -61,7 +56,6 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 
 	tracker = buildingLoads
 	if SOLAR_WORK:
-		solarUnitsLeft = 0
 		# LOOP FOR SOLAR
 		for index, buildingLoad in enumerate(buildingLoads):
 			buildingType = buildingLoad.get("buildingType")
