@@ -16,8 +16,8 @@ class ElectricityAllocation(TypedDict):
 class InputPayload(TypedDict):
     random_event: RandomEvent
     forecast: Forecast
-    buildingLoads: list[BuildingLoad]
-    grid_price: float
+    loads: list[BuildingLoad]
+    grid_cost: float
 
 class ReturnPayload(TypedDict):
     buildings: list[ElectricityAllocation]
