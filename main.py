@@ -5,6 +5,7 @@ GENERATOR_PRICE = 1.0
 SOLAR_WORK = True
 BATTERY_WORK = True
 GRID_WORK = True
+GENERATOR_WORK = True
 
 def process(input_payload: schema.InputPayload, current_battery) -> schema.ReturnPayload:
 	# TODO: use batteryChargeTarget to optimize battery charging depending on availability of other resources
@@ -32,31 +33,54 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 		"generator": 0
 	} 
 
+	elecAlloc : schema.ElectricityAllocation = {
+					"battery": 0,
+					"grid": 0,
+					"solar": 0
+				}
+	
+	returnPayload : schema.ReturnPayload = {
+		"buildings": [elecAlloc] * len(buildingLoads), 
+		"generator": 0
+	} 
+
 	# CALCULATE TOTAL LOAD
 	for load in buildingLoads:
 		totalLoad += load.get("load")
 
 	tracker = buildingLoads
-	
-	# LOOP FOR SOLAR
-	for buildingLoad in enumerate(buildingLoads):
-		buildingType = buildingLoad.get("buildingType")
-		if buildingType == "lecture_hall":
-			nonSolar += 1
-			continue
-		load = buildingLoad.get("load")
-		if solarUnitsLeft > load:
-			solarUnitsLeft -= load
+	if SOLAR_WORK:
+		solarUnitsLeft = 0
+		# LOOP FOR SOLAR
+		for index, buildingLoad in enumerate(buildingLoads):
+			buildingType = buildingLoad.get("buildingType")
+			# lecture halls can't use solar 
+			if buildingType == "lecture_hall":
+				nonSolar += 1
+				continue
+
+			load = buildingLoad.get("load")
+			# allocate solar energy and update tracker
+			if solarUnitsLeft > load:
+				solarUnitsLeft -= load
+				tracker[index].update({"load" : 0})
+				returnPayload.get("buildings")[index].update({"solar" : load})
+			elif solarUnitsLeft == 0:
+				break
+			else:
+				tracker[index].update({"load" : load - solarUnitsLeft})
+				returnPayload.get("buildings")[index].update({"solar" : solarUnitsLeft})
+				solarUnitsLeft = 0		
 
 	# LOOP FOR BATTERY + GRID
 	for index, buildingLoad in enumerate(tracker):
-		load = tracker.get("load")
+		load = tracker[index].get("load")
 		if gridPrice > GENERATOR_PRICE and batteryUnitsLeft > 0:
 			if load != 0:
 				if batteryUnitsLeft > load:
 					tracker[index].update({"load" : 0})
 					returnPayload.get("buildings")[index].update({"battery" : load})
-					batteryUnitsLeft -= loads
+					batteryUnitsLeft -= load
 				else:
 					tracker[index].update({"load" : load - batteryUnitsLeft})
 					returnPayload.get("buildings")[index].update({"battery" : batteryUnitsLeft})
