@@ -12,7 +12,6 @@ def process(input_payload: schema.InputPayload, current_battery: int, hour: int)
 	solarUnitsLeft = SOLAR_CAPACITY
 	batteryUnitsLeft = current_battery
 	totalLoad = 0
-	nonSolar = 0
  
 	SOLAR_WORK = True
 	BATTERY_WORK = True
@@ -52,49 +51,41 @@ def process(input_payload: schema.InputPayload, current_battery: int, hour: int)
 	for load in buildingLoads:
 		totalLoad += load.get("load")
 
-	tracker = buildingLoads
 	if SOLAR_WORK:
 		# LOOP FOR SOLAR
 		for index, buildingLoad in enumerate(buildingLoads):
 			buildingType = buildingLoad.get("type")
 			# lecture halls can't use solar 
 			if buildingType == "lecture_hall":
-				nonSolar += 1
 				continue
 
 			load = buildingLoad.get("load")
-			# allocate solar energy and update tracker
+			# allocate solar energy and update buildingLoads
 			if solarUnitsLeft > load:
 				solarUnitsLeft -= load
-				tracker[index].update({"load" : 0})
+				buildingLoads[index].update({"load" : 0})
 				returnPayload.get("buildings")[index].update({"solar" : load})
 			elif solarUnitsLeft == 0:
 				break
 			else:
-				tracker[index].update({"load" : load - solarUnitsLeft})
+				buildingLoads[index].update({"load" : load - solarUnitsLeft})
 				returnPayload.get("buildings")[index].update({"solar" : solarUnitsLeft})
-				solarUnitsLeft = 0		
+				solarUnitsLeft = 0
 
 	# LOOP FOR BATTERY + GRID
-	for index, buildingLoad in enumerate(tracker):
-		load = tracker[index].get("load")
-		if gridPrice > GENERATOR_PRICE and batteryUnitsLeft > 0:
-			if load != 0:
-				if BATTERY_WORK:
-					if batteryUnitsLeft > load:
-						tracker[index].update({"load" : 0})
-						returnPayload.get("buildings")[index].update({"battery" : load})
-						batteryUnitsLeft -= load
-					else:
-						tracker[index].update({"load" : load - batteryUnitsLeft})
-						returnPayload.get("buildings")[index].update({"battery" : batteryUnitsLeft})
-						batteryUnitsLeft = 0
-		else:
-			if GRID_WORK:
-				if load != 0:
-					returnPayload.get("buildings")[index].update({"grid" : load})
-					tracker[index].update({"load" : 0})
+	if BATTERY_WORK and input_payload["grid_cost"] > 1:
+		for index, buildingLoad in enumerate(buildingLoads):
+			if batteryUnitsLeft > 0:
+				batteryToUse = min(batteryUnitsLeft, buildingLoad["load"])
+				buildingLoad["load"] -= batteryToUse
+				batteryUnitsLeft -= batteryToUse
+				returnPayload["buildings"][index]["battery"] = batteryToUse
 
+			returnPayload["buildings"][index]["grid"] = buildingLoad["load"]
+	else:
+		for index, buildingLoad in enumerate(buildingLoads):
+			returnPayload["buildings"][index]["grid"] = buildingLoads[index]["load"]
+	
 	if GENERATOR_WORK and (hour < 23):
 		returnPayload.update({"generator" : BATTERY_CAPACITY - batteryUnitsLeft})
  
