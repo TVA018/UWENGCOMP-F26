@@ -7,15 +7,12 @@ SOLAR_CAPACITY = 200
 BATTERY_CAPACITY = 100
 GENERATOR_PRICE = 1.0
 
-def process(input_payload: schema.InputPayload, current_battery) -> schema.ReturnPayload:
-	# TODO: use batteryChargeTarget to optimize battery charging depending on availability of other resources
-	batteryChargeTarget = 40
+def process(input_payload: schema.InputPayload, current_battery: int, hour: int) -> schema.ReturnPayload:
+	"""Calculates the electricity allocation"""
 	solarUnitsLeft = SOLAR_CAPACITY
 	batteryUnitsLeft = current_battery
 	totalLoad = 0
 	nonSolar = 0
-	loadLeft = 0
-	recharge = 0
  
 	SOLAR_WORK = True
 	BATTERY_WORK = True
@@ -24,9 +21,7 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 
 	randomEvent = input_payload.get("random_event")
 	buildingLoads = input_payload.get("loads")
-	forecast = input_payload.get("forecast")
-	gridPrice = input_payload.get("grid_cost")
- 
+	gridPrice = input_payload.get("grid_cost") 
  
 	returnPayload : schema.ReturnPayload = {
 		"buildings": [],
@@ -41,8 +36,6 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 					}
 
 		returnPayload.get("buildings").append(elecAlloc)
-
-
 
 	# UPDATE STATUS
 	match randomEvent:
@@ -102,7 +95,7 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 					returnPayload.get("buildings")[index].update({"grid" : load})
 					tracker[index].update({"load" : 0})
 
-	if GENERATOR_WORK:
+	if GENERATOR_WORK and (hour < 23):
 		returnPayload.update({"generator" : BATTERY_CAPACITY - batteryUnitsLeft})
  
 	return returnPayload
@@ -115,7 +108,7 @@ def run_client():
 		for hour in range(24):
 			# RECEIVING PAYLOAD FROM SOCKET
 			payload: schema.InputPayload = json.loads(client.recv(1024))
-			return_payload = process(payload, battery)
+			return_payload = process(payload, battery, hour)
 			battery -= sum(allocation["battery"] for allocation in return_payload["buildings"])
 			battery += return_payload["generator"]
 
