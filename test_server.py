@@ -1,5 +1,9 @@
 import json
 import socket
+from schema import InputPayload
+
+def generate_test_data_for_hour() -> InputPayload:
+    pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
     server.bind(("127.0.0.1", 8800))
@@ -10,11 +14,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         with clientsocket:
             print(f"Connected by {address}")
             while True:
-                data = clientsocket.recv(1024)
-                data_str = data.decode("utf-8")
-                data_dict = json.loads(data_str)
-                print(f"Data received from client: {data_str}")
-                data_dict["from_server"] = "Matthew is the goat"
-                if not data:
-                    break
-                clientsocket.sendall(json.dumps(data_dict).encode("utf-8"))
+                hour_info: InputPayload = generate_test_data_for_hour() # Generate test data to store in this dictionary
+                clientsocket.sendall(json.dumps(hour_info).encode("utf-8"))
