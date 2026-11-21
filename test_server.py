@@ -66,6 +66,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         (clientsocket, address) = server.accept()
         with clientsocket:
             print(f"Connected by {address}")
-            while True:
+            for i in range(24): 
                 hour_info: InputPayload = generate_test_data_for_hour() # Generate test data to store in this dictionary
                 clientsocket.sendall(json.dumps(hour_info).encode("utf-8"))
+
+                client_payload_str = ""
+                incoming_data = clientsocket.recv(1024)
+
+                while incoming_data:
+                    client_payload_str += incoming_data.decode("utf-8")
+                    incoming_data = clientsocket.recv(1024)
+
+                client_payload_dict = json.loads(client_payload_str)
