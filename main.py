@@ -2,10 +2,6 @@ import schema
 SOLAR_CAPACITY = 200
 BATTERY_CAPACITY = 100
 GENERATOR_PRICE = 1.0
-SOLAR_WORK = True
-BATTERY_WORK = True
-GRID_WORK = True
-GENERATOR_WORK = True
 
 def process(input_payload: schema.InputPayload, current_battery) -> schema.ReturnPayload:
 	# TODO: use batteryChargeTarget to optimize battery charging depending on availability of other resources
@@ -16,6 +12,11 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 	nonSolar = 0
 	loadLeft = 0
 	recharge = 0
+ 
+	SOLAR_WORK = True
+	BATTERY_WORK = True
+	GRID_WORK = True
+	GENERATOR_WORK = True
 
 	randomEvent = input_payload.get("random_event")
 	buildingLoads = input_payload.get("buildingLoads")
@@ -58,7 +59,7 @@ def process(input_payload: schema.InputPayload, current_battery) -> schema.Retur
 	if SOLAR_WORK:
 		# LOOP FOR SOLAR
 		for index, buildingLoad in enumerate(buildingLoads):
-			buildingType = buildingLoad.get("buildingType")
+			buildingType = buildingLoad.get("type")
 			# lecture halls can't use solar 
 			if buildingType == "lecture_hall":
 				nonSolar += 1
